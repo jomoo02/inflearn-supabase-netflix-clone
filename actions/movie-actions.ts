@@ -69,48 +69,6 @@ async function searchMoviesByFavorite(
   return data;
 }
 
-// async function searchFavoriteMovies(search: string, range: number[]) {
-//   if (range.length === 0) {
-//     return [];
-//   }
-//   const [start, end] = range;
-
-//   const supabase = await createServerSupabaseClient();
-
-//   const { data, error } = await supabase
-//     .from("movie")
-//     .select("*")
-//     .like("title", `%${search}%`)
-//     .eq("favorite", true)
-//     .order("id")
-//     .range(start, end);
-
-//   handleError(error);
-
-//   return data;
-// }
-
-// async function searchRemainMovies(search: string, range: number[]) {
-//   if (range.length === 0) {
-//     return [];
-//   }
-//   const [start, end] = range;
-
-//   const supabase = await createServerSupabaseClient();
-
-//   const { data, error } = await supabase
-//     .from("movie")
-//     .select("*")
-//     .like("title", `%${search}%`)
-//     .eq("favorite", false)
-//     .order("id")
-//     .range(start, end);
-
-//   handleError(error);
-
-//   return data;
-// }
-
 export async function searchMovies({
   search,
   page,
