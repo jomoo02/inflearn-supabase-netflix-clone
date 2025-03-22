@@ -1,3 +1,4 @@
+import { createServerSupabaseClient } from "utils/supabase/server";
 import UI from "./ui";
 
 export const metadata = {
@@ -5,6 +6,12 @@ export const metadata = {
   description: "Netflix clone using TMDB API",
 };
 
-export default function Page() {
-  return <UI />;
+export default async function Page() {
+  const supabase = await createServerSupabaseClient();
+  const { count } = await supabase
+    .from("movie")
+    .select("*", { count: "exact", head: true })
+    .eq("favorite", true);
+
+  return <UI favoriteCount={count} />;
 }

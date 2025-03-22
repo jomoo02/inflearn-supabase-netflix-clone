@@ -26,33 +26,119 @@ export async function updateMovie(movie: MovieUpdate) {
   handleError(error);
 }
 
-export async function searchMovies({ search, page, pageSize }) {
+function getRange(favoriteCount: number, page: number, pageSize: number) {
+  const start = (page - 1) * pageSize; // 현재 페이지의 시작 인덱스
+  const end = start + pageSize - 1; // 현재 페이지의 마지막 인덱스
+
+  const favStart = start < favoriteCount ? start : favoriteCount;
+  const favEnd = Math.min(end, favoriteCount - 1);
+  const favLength = Math.max(favEnd - favStart + 1, 0);
+
+  const remStart = Math.max(0, start - favoriteCount);
+  const remEnd = remStart + (pageSize - favLength) - 1;
+  const remLength = Math.max(remEnd - remStart + 1, 0);
+
+  return {
+    favoriteRange: favLength > 0 ? [favStart, favEnd] : [],
+    remainRange: remLength > 0 ? [remStart, remEnd] : [],
+  };
+}
+
+async function searchMoviesByFavorite(
+  search: string,
+  range: number[],
+  isFavorite: boolean
+) {
+  if (range.length === 0) {
+    return [];
+  }
+  const [start, end] = range;
+
   const supabase = await createServerSupabaseClient();
 
-  const { data, count, error } = await supabase
+  const { data, error } = await supabase
     .from("movie")
-    .select("*", { count: "exact" })
+    .select("*")
     .like("title", `%${search}%`)
-    .range((page - 1) * pageSize, page * pageSize - 1);
+    .eq("favorite", isFavorite)
+    .order("id")
+    .range(start, end);
 
-  const hasNextPage = count > page * pageSize;
+  handleError(error);
 
-  if (error) {
-    console.error(error);
-    return {
-      data: [],
-      count: 0,
-      page: null,
-      pageSize: null,
-      error,
-    };
-  }
+  return data;
+}
+
+// async function searchFavoriteMovies(search: string, range: number[]) {
+//   if (range.length === 0) {
+//     return [];
+//   }
+//   const [start, end] = range;
+
+//   const supabase = await createServerSupabaseClient();
+
+//   const { data, error } = await supabase
+//     .from("movie")
+//     .select("*")
+//     .like("title", `%${search}%`)
+//     .eq("favorite", true)
+//     .order("id")
+//     .range(start, end);
+
+//   handleError(error);
+
+//   return data;
+// }
+
+// async function searchRemainMovies(search: string, range: number[]) {
+//   if (range.length === 0) {
+//     return [];
+//   }
+//   const [start, end] = range;
+
+//   const supabase = await createServerSupabaseClient();
+
+//   const { data, error } = await supabase
+//     .from("movie")
+//     .select("*")
+//     .like("title", `%${search}%`)
+//     .eq("favorite", false)
+//     .order("id")
+//     .range(start, end);
+
+//   handleError(error);
+
+//   return data;
+// }
+
+export async function searchMovies({
+  search,
+  page,
+  pageSize,
+  favoriteCount,
+}: {
+  search: string;
+  page: number;
+  pageSize: number;
+  favoriteCount: number;
+}) {
+  const { favoriteRange, remainRange } = getRange(
+    favoriteCount,
+    page,
+    pageSize
+  );
+  const [favoriteMovies, remainMovies] = await Promise.all([
+    searchMoviesByFavorite(search, favoriteRange, true),
+    searchMoviesByFavorite(search, remainRange, false),
+  ]);
+
+  const data = [...favoriteMovies, ...remainMovies];
 
   return {
     data,
     page,
     pageSize,
-    hasNextPage,
+    hasNextPage: data.length === pageSize,
   };
 }
 
